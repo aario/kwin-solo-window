@@ -1,0 +1,22 @@
+{
+    "KPlugin": {
+        "Name": "Solo Window",
+        "Description": "Minimizes all windows except the active one on each monitor.",
+        "Icon": "preferences-system-windows",
+        "Authors": [
+            {
+                "Name": "Gemini"
+            }
+        ],
+        "Id": "kwin-solo-window",
+        "Version": "1.0",
+        "License": "GPLv3"
+    },
+    "KPackageStructure": "KWin/Script",
+    "X-KDE-PluginInfo-Version": "2",
+    "X-KDE-ServiceTypes": [
+        "KWin/Script"
+    ],
+    "X-Plasma-API": "javascript",
+    "X-Plasma-MainScript": "code/main.js"
+}
