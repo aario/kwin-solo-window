@@ -1,6 +1,6 @@
 # Solo Window - A Focus-Mode KWin Script for KDE Plasma 6
 
-![Solo Window Demo](https://i.imgur.com/example.gif) <!-- It's highly recommended to create a short GIF showing the script in action and replace this link -->
+![Solo Window Demo](demo.gif)
 
 **Solo Window** is a powerful KWin script for KDE Plasma 6 designed to bring ultimate focus to your workflow. It automatically minimizes all windows except the one you are currently working on, creating a clean, distraction-free environment on each of your monitors.
 
