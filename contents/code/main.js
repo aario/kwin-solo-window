@@ -42,7 +42,8 @@ function soloWindow(activeWindow) {
             || window.minimized
             || (window.transientFor
                 && window.transientFor === activeWindowsByOutput.get(window.output))
-            || !areOnSameVirtualDesktop(designatedActiveWindow, window)) {
+            || !areOnSameVirtualDesktop(designatedActiveWindow, window)
+            || !doWindowsOverlap(designatedActiveWindow, window)) {
             continue;
         }
 
@@ -102,6 +103,39 @@ function areOnSameVirtualDesktop(activeWindow, otherWindow) {
     return false;
 }
 
+/**
+ * Checks if two window objects physically overlap on the screen.
+ *
+ * @param {object} windowA The first KWin window object.
+ * @param {object} windowB The second KWin window object.
+ * @returns {boolean} Returns true if the windows' geometries intersect,
+ * otherwise returns false.
+ */
+function doWindowsOverlap(windowA, windowB) {
+    // The KWin::Window object provides a 'geometry' property, which is a
+    // QRectF object. The QRectF object itself doesn't have an 'intersects'
+    // method directly exposed in the scripting API, but we can manually
+    // check for intersection by comparing the coordinates.
+
+    const rectA = windowA.clientGeometry;
+    const rectB = windowB.clientGeometry;
+
+    // Check if the rectangles do NOT overlap. It's often easier to prove
+    // a negative. Two rectangles do not overlap if one is entirely to the
+    // left, right, top, or bottom of the other.
+
+    if (rectA.right < rectB.left || rectA.left > rectB.right) {
+        return false; // They are horizontally separate.
+    }
+
+    if (rectA.bottom < rectB.top || rectA.top > rectB.bottom) {
+        return false; // They are vertically separate.
+    }
+
+    // If they are not separate either horizontally or vertically,
+    // they must overlap.
+    return true;
+}
 
 // --- Main Connections ---
 workspace.windowActivated.connect(soloWindow);
