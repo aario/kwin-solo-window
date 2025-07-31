@@ -58,6 +58,28 @@
     </widget>
    </item>
    <item>
+    <widget class="QGroupBox" name="aboutGroup">
+     <property name="title">
+      <string>About</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_4">
+      <item>
+       <widget class="QLabel" name="aboutLabel">
+        <property name="text">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;b&gt;Solo Window for KDE Plasma 6&lt;/b&gt;&lt;/p&gt;&lt;p&gt;Version 1.0&lt;/p&gt;&lt;p&gt;Created by aario&lt;/p&gt;&lt;p&gt;Find the project on &lt;a href=&quot;https://github.com/aario/kwin-solo-window&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#2980b9;&quot;&gt;GitHub&lt;/span&gt;&lt;/a&gt;.&lt;/p&gt;&lt;p&gt;If you find this script useful, please consider &lt;a href=&quot;https://github.com/sponsors/aario&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#2980b9;&quot;&gt;sponsoring its development&lt;/span&gt;&lt;/a&gt;.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+        <property name="wordWrap">
+         <bool>true</bool>
+        </property>
+        <property name="openExternalLinks">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
     <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
