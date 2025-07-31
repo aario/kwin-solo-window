@@ -8,12 +8,12 @@ const pinnedWindowIds = new Set();
 function soloWindow(activeWindow) {
     print(`SoloWindow Script: windowActivated triggered for '${activeWindow ? activeWindow.caption : "N/A"}'.`);
 
-    // --- NEW: If the active window is null (desktop clicked) or not a normal application window (panel, widget, etc.), do nothing. ---
-    if (!activeWindow || !activeWindow.normalWindow) {
-        print(`SoloWindow Script: Activated window is null or not a normal window. No action will be taken.`);
+    if (!activeWindow
+        || !activeWindow.normalWindow
+        || pinnedWindowIds.has(activeWindow.internalId)) {
+        print(`SoloWindow Script: Activated window is null or not a normal window, or is pinned. Skipping.`);
         return;
     }
-    // --- End of new logic ---
 
     // If the active window is a transient for another window, do nothing.
     if (activeWindow.transientFor) {
