@@ -1,6 +1,6 @@
 // contents/code/main.js
 
-print("minimizedOtherWindows function: Loading...");
+print("minimizeOtherWindows function: Loading...");
 
 // A set to store the unique IDs of windows that should not be minimized.
 const pinnedWindowIds = new Set();
@@ -13,19 +13,19 @@ const config = {
     pinnedWindowsDontMinimize: readConfig('pinnedWindowsDontMinimize', true)
 };
 
-function minimizedOtherWindows(activeWindow) {
-    print(`minimizedOtherWindows function: windowActivated triggered for '${activeWindow ? activeWindow.caption : "N/A"}'.`);
+function minimizeOtherWindows(activeWindow) {
+    print(`minimizeOtherWindows function: windowActivated triggered for '${activeWindow ? activeWindow.caption : "N/A"}'.`);
 
     if (!activeWindow
         || !activeWindow.normalWindow
         || (config.pinnedWindowsDontMinimize && pinnedWindowIds.has(activeWindow.internalId))) {
-        print(`minimizedOtherWindows function: Activated window is null or not a normal window, or is pinned. Skipping.`);
+        print(`minimizeOtherWindows function: Activated window is null or not a normal window, or is pinned. Skipping.`);
         return;
     }
 
     // If the active window is a transient for another window, do nothing.
     if (activeWindow.transientFor) {
-        print(`minimizedOtherWindows function: Active window '${activeWindow.caption}' is a transient window. Will consider its main parent.`);
+        print(`minimizeOtherWindows function: Active window '${activeWindow.caption}' is a transient window. Will consider its main parent.`);
         activeWindow = getAncestorForTransientWindow(activeWindow);
     }
 
@@ -63,7 +63,7 @@ function minimizedOtherWindows(activeWindow) {
                 causerVictimMap.set(causer.internalId, new Set());
             }
             causerVictimMap.get(causer.internalId).add(window.internalId);
-            print(`minimizedOtherWindows function: Recorded '${causer.caption}' as causer for victim '${window.caption}'.`);
+            print(`minimizeOtherWindows function: Recorded '${causer.caption}' as causer for victim '${window.caption}'.`);
         }
 
         // --- NEW: Add the window to our temporary ignore list ---
@@ -71,7 +71,7 @@ function minimizedOtherWindows(activeWindow) {
 
         window.minimized = true;
     }
-    print("minimizedOtherWindows function: minimizedOtherWindows() finished.");
+    print("minimizeOtherWindows function: minimizeOtherWindows() finished.");
 }
 
 function togglePin(window) {
@@ -79,10 +79,10 @@ function togglePin(window) {
     if (!window) return;
     if (pinnedWindowIds.has(window.internalId)) {
         pinnedWindowIds.delete(window.internalId);
-        print(`minimizedOtherWindows function: Unpinned window '${window.caption}'.`);
+        print(`minimizeOtherWindows function: Unpinned window '${window.caption}'.`);
     } else {
         pinnedWindowIds.add(window.internalId);
-        print(`minimizedOtherWindows function: Pinned window '${window.caption}'.`);
+        print(`minimizeOtherWindows function: Pinned window '${window.caption}'.`);
     }
 }
 
@@ -92,11 +92,11 @@ function onWindowRemoved(window) {
     // First, clean up the pinned window list as before.
     if (pinnedWindowIds.has(window.internalId)) {
         pinnedWindowIds.delete(window.internalId);
-        print(`minimizedOtherWindows function: Cleaned up pinned ID for closed window '${window.caption}'.`);
+        print(`minimizeOtherWindows function: Cleaned up pinned ID for closed window '${window.caption}'.`);
     }
 
     // Part A: Check if the closed window was a "causer". If so, restore its victims.
-    print(`minimizedOtherWindows function: Causer window '${window.caption}' closed. Restoring victim(s).`);
+    print(`minimizeOtherWindows function: Causer window '${window.caption}' closed. Restoring victim(s).`);
     restoreVictims(closedWindowId)
 
     // Part B: Clean up any "orphaned" victims.
@@ -119,7 +119,7 @@ function restoreVictims(causerWindowId) {
         // Find the actual window object for this victim ID.
         const victimWindow = allWindows.find(win => win.internalId === victimId);
         if (victimWindow && victimWindow.minimized) {
-            print(`minimizedOtherWindows function: Restoring victim '${victimWindow.caption}'.`);
+            print(`minimizeOtherWindows function: Restoring victim '${victimWindow.caption}'.`);
             victimWindow.minimized = false;
         }
     }
@@ -142,7 +142,7 @@ function onWindowMinimizedChanged(window) {
         return;
     }
 
-    print(`minimizedOtherWindows function: Window '${window.caption}' was minimized. Restoring its victims.`);
+    print(`minimizeOtherWindows function: Window '${window.caption}' was minimized. Restoring its victims.`);
     restoreVictims(window.internalId)
 }
 
@@ -226,7 +226,7 @@ function reevaluateVictims(window) {
         return;
     }
 
-    print(`minimizedOtherWindows function: Causer window '${window.caption}' moved. Checking victim(s) to restore.`);
+    print(`minimizeOtherWindows function: Causer window '${window.caption}' moved. Checking victim(s) to restore.`);
 
     const allWindows = workspace.stackingOrder;
     for (const victimId of victimIds) {
@@ -236,7 +236,7 @@ function reevaluateVictims(window) {
             && victimWindow.minimized
             && config.respectOverlap
             && !doWindowsOverlap(window, victimWindow)) {
-            print(`minimizedOtherWindows function: Restoring victim '${victimWindow.caption}'.`);
+            print(`minimizeOtherWindows function: Restoring victim '${victimWindow.caption}'.`);
             victimWindow.minimized = false;
             // Remove the entry for the restored victim.
             victimIds.delete(victimWindow);
@@ -245,7 +245,7 @@ function reevaluateVictims(window) {
 }
 
 // --- Main Connections ---
-workspace.windowActivated.connect(minimizedOtherWindows);
+workspace.windowActivated.connect(minimizeOtherWindows);
 workspace.windowRemoved.connect(onWindowRemoved);
 // This function will run for every new window that is created.
 function onWindowAdded(window) {
@@ -257,7 +257,7 @@ function onWindowAdded(window) {
     // --- Connect to signals for movement, desktop, and screen changes ---
     window.interactiveMoveResizeFinished.connect(function() {
         reevaluateVictims(window);
-        minimizedOtherWindows(window)
+        minimizeOtherWindows(window)
     });
 }
 
@@ -268,7 +268,7 @@ for (const window of workspace.stackingOrder) {
     onWindowAdded(window);
 }
 
-print("minimizedOtherWindows function: Core connections established.");
+print("minimizeOtherWindows function: Core connections established.");
 
 
 // --- Final Working Method for Adding the Menu Action ---
@@ -290,4 +290,4 @@ registerUserActionsMenu(function(window) {
         }
     };
 });
-print("minimizedOtherWindows function: Registered final user actions menu.");
+print("minimizeOtherWindows function: Registered final user actions menu.");
