@@ -29,6 +29,8 @@ If you've ever wanted to force a "one-task-at-a-time" policy on your desktop, th
 -   **Pinning for Exceptions:** Need to keep a few windows visible? Simply "pin" them using the window menu, and they will be excluded from the auto-minimize rule.
 -   **Plasma Integration:** Adds a "Pin Window" option directly to the window's right-click menu for easy access.
 -   **Highly Configurable:** Fine-tune the script's behavior from the settings dialog. You can toggle multi-monitor mode, virtual desktop awareness, non-overlapping window mode, and more.
+-   **Intelligent Restoration:** When you close a window, the script automatically restores any windows that were minimized because of it, seamlessly returning you to your previous context.
+
 ---
 
 ### Installation (KDE Plasma 6)

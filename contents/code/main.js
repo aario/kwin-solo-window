@@ -4,6 +4,8 @@ print("SoloWindow Script: Loading...");
 
 // A set to store the unique IDs of windows that should not be minimized.
 const pinnedWindowIds = new Set();
+const causerVictimMap = new Map();
+const justMinimizedById = new Set();
 const config = {
     respectMonitors: readConfig('respectMonitors', true),
     respectVirtualDesktops: readConfig('respectVirtualDesktops', true),
@@ -54,6 +56,19 @@ function soloWindow(activeWindow) {
             continue;
         }
 
+        // --- Record the causer-victim relationship ---
+        const causer = designatedActiveWindow;
+        if (causer) { // Ensure we have a valid causer
+            if (!causerVictimMap.has(causer.internalId)) {
+                causerVictimMap.set(causer.internalId, new Set());
+            }
+            causerVictimMap.get(causer.internalId).add(window.internalId);
+            print(`SoloWindow Script: Recorded '${causer.caption}' as causer for victim '${window.caption}'.`);
+        }
+
+        // --- NEW: Add the window to our temporary ignore list ---
+        justMinimizedById.add(window.internalId);
+
         window.minimized = true;
     }
     print("SoloWindow Script: soloWindow() finished.");
@@ -72,10 +87,64 @@ function togglePin(window) {
 }
 
 function onWindowRemoved(window) {
-    // Cleans up the pinned ID when a window is closed.
+    const closedWindowId = window.internalId;
+
+    // First, clean up the pinned window list as before.
     if (pinnedWindowIds.has(window.internalId)) {
         pinnedWindowIds.delete(window.internalId);
         print(`SoloWindow Script: Cleaned up pinned ID for closed window '${window.caption}'.`);
+    }
+
+    // --- Restore victims and clean up the map ---
+
+    // Part A: Check if the closed window was a "causer". If so, restore its victims.
+    if (causerVictimMap.has(closedWindowId)) {
+        const victimIds = causerVictimMap.get(closedWindowId);
+        print(`SoloWindow Script: Causer window '${window.caption}' closed. Restoring ${victimIds.size} victim(s).`);
+
+        const allWindows = workspace.stackingOrder;
+        for (const victimId of victimIds) {
+            // Find the actual window object for this victim ID.
+            const victimWindow = allWindows.find(win => win.internalId === victimId);
+            if (victimWindow && victimWindow.minimized) {
+                print(`SoloWindow Script: Restoring victim '${victimWindow.caption}'.`);
+                victimWindow.minimized = false;
+            }
+        }
+        // Remove the entry for the closed causer.
+        causerVictimMap.delete(closedWindowId);
+    }
+
+    // Part B: Clean up any "orphaned" victims.
+    // This removes the closed window from any other causer's victim list.
+    for (const victimSet of causerVictimMap.values()) {
+        victimSet.delete(closedWindowId);
+    }
+}
+
+function onWindowMinimizedChanged(window) {
+    // This function is called whenever a window's minimized state changes.
+    // We only care if the window is BEING minimized by the user.
+    if (!window.minimized) {
+        return;
+    }
+
+    // --- Check if this minimization was caused by our script ---
+    if (justMinimizedById.has(window.internalId)) {
+        // This was a script-triggered minimization.
+        // Remove it from the ignore list and do nothing else.
+        justMinimizedById.delete(window.internalId);
+        return;
+    }
+
+    print(`SoloWindow Script: Window '${window.caption}' was minimized. Checking if it's a victim.`);
+    // Check if this window is a victim in our map and remove it.
+    for (const victimSet of causerVictimMap.values()) {
+        if (victimSet.delete(window.internalId)) {
+            print(`SoloWindow Script: Removed manually minimized window '${window.caption}' from victim list.`);
+            // A window can only be a victim of one causer at a time, so we can break.
+            break;
+        }
     }
 }
 
@@ -156,6 +225,20 @@ function getAncestorForTransientWindow(window) {
 // --- Main Connections ---
 workspace.windowActivated.connect(soloWindow);
 workspace.windowRemoved.connect(onWindowRemoved);
+// This function will run for every new window that is created.
+function onWindowAdded(window) {
+    // Connect to the minimizedChanged signal for this specific window.
+    window.minimizedChanged.connect(function() {
+        onWindowMinimizedChanged(window);
+    });
+}
+// Connect the handler for new windows.
+workspace.windowAdded.connect(onWindowAdded);
+// And also connect it for all windows that already exist when the script loads.
+for (const window of workspace.stackingOrder) {
+    onWindowAdded(window);
+}
+
 print("SoloWindow Script: Core connections established.");
 
 
