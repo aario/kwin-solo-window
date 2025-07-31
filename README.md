@@ -23,11 +23,12 @@ If you've ever wanted to force a "one-task-at-a-time" policy on your desktop, th
 ### Features
 
 -   **Automatic Minimization:** When you switch to a window, all other windows on that same monitor are automatically minimized.
--   **Full Multi-Monitor Support:** Each monitor maintains its own "solo window," allowing you to have one focused application per screen.
+-   **Ideal for Multi-Monitor & Ultrawide Setups:** Each monitor maintains its own "solo window." On large ultrawide screens, you can enable a mode to keep non-overlapping windows visible, making perfect use of your screen real estate.
+-   **Virtual Desktop Aware:** The script respects your virtual desktops, only minimizing windows that share the same desktop as your active one.
 -   **Intelligent Dialog Handling:** The script is smart enough to keep a parent window visible when you open one of its dialogs (e.g., a "File Open" or "Settings" window).
 -   **Pinning for Exceptions:** Need to keep a few windows visible? Simply "pin" them using the window menu, and they will be excluded from the auto-minimize rule.
 -   **Plasma Integration:** Adds a "Pin Window" option directly to the window's right-click menu for easy access.
-
+-   **Highly Configurable:** Fine-tune the script's behavior from the settings dialog. You can toggle multi-monitor mode, virtual desktop awareness, non-overlapping window mode, and more.
 ---
 
 ### Installation (KDE Plasma 6)
@@ -63,6 +64,7 @@ The script is now active!
 
 -   **Automatic Mode:** Simply click on any window to make it active. All other windows on that monitor will minimize.
 -   **Pinning a Window:** To prevent a window from being minimized, right-click its title bar, go to **More Actions**, and select **Pin Window (Keep Raised)**. A checkmark will appear next to it. To unpin it, simply click the option again.
+-   **Configuring the Script:** In **System Settings** -> **Window Management** -> **KWin Scripts**, click the **Configure** (gear) icon next to "Solo Window" to open its settings. Here you can tailor the script's behavior to perfectly match your workflow.
 
 ---
 
