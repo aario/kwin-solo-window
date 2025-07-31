@@ -31,25 +31,22 @@ function soloWindow(activeWindow) {
             activeWindowsByOutput.set(window.output, window);
         }
     }
-    for (const window of allWindows) {
-        if (!window.normalWindow || !window.minimizable) {
-            continue;
-        }
-        if (pinnedWindowIds.has(window.internalId)) {
-            continue;
-        }
 
+    for (const window of allWindows) {
         const designatedActiveWindow = activeWindowsByOutput.get(window.output);
 
-        if (window.transientFor && window.transientFor === designatedActiveWindow) {
+        if (!window.normalWindow
+            || !window.minimizable
+            || pinnedWindowIds.has(window.internalId)
+            || window === designatedActiveWindow
+            || window.minimized
+            || (window.transientFor
+                && window.transientFor === activeWindowsByOutput.get(window.output))
+            || !areOnSameVirtualDesktop(designatedActiveWindow, window)) {
             continue;
         }
 
-        if (window !== designatedActiveWindow) {
-            if (!window.minimized) {
-                window.minimized = true;
-            }
-        }
+        window.minimized = true;
     }
     print("SoloWindow Script: soloWindow() finished.");
 }
@@ -73,6 +70,38 @@ function onWindowRemoved(window) {
         print(`SoloWindow Script: Cleaned up pinned ID for closed window '${window.caption}'.`);
     }
 }
+
+/**
+ * Compares two window objects to determine if they share a virtual desktop.
+ *
+ * @param {object} activeWindow The current active KWin window object.
+ * @param {object} otherWindow The second KWin window object for which we decode to minimize or not.
+ * @returns {boolean} Returns true if the windows share at least one virtual
+ * desktop or if either window is set to be on all desktops.
+ * Otherwise, returns false.
+ */
+function areOnSameVirtualDesktop(activeWindow, otherWindow) {
+    // If either window is set to be on all desktops, they are considered
+    // to be sharing a desktop space.
+    if (otherWindow.onAllDesktops) {
+        return true;
+    }
+
+    // Create a Set of desktop IDs for the first window for efficient lookup.
+    const desktopsA_ids = new Set(activeWindow.desktops.map(d => d.id));
+
+    // Iterate through the desktops of the second window. If we find any
+    // desktop ID that exists in the first window's set, they overlap.
+    for (const desktopB of otherWindow.desktops) {
+        if (desktopsA_ids.has(desktopB.id)) {
+            return true; // Found a common desktop.
+        }
+    }
+
+    // If the loop completes without finding a match, they are on different desktops.
+    return false;
+}
+
 
 // --- Main Connections ---
 workspace.windowActivated.connect(soloWindow);
