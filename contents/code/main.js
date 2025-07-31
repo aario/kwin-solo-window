@@ -23,8 +23,8 @@ function soloWindow(activeWindow) {
 
     // If the active window is a transient for another window, do nothing.
     if (activeWindow.transientFor) {
-        print(`SoloWindow Script: Active window '${activeWindow.caption}' is a transient window. No action will be taken.`);
-        activeWindow = activeWindow.transientFor;
+        print(`SoloWindow Script: Active window '${activeWindow.caption}' is a transient window. Will consider its main parent.`);
+        activeWindow = getAncestorForTransientWindow(activeWindow);
     }
 
     const activeWindowsByOutput = new Map();
@@ -48,8 +48,7 @@ function soloWindow(activeWindow) {
             || pinnedWindowIds.has(window.internalId)
             || window === designatedActiveWindow
             || window.minimized
-            || (window.transientFor
-                && window.transientFor === designatedActiveWindow)
+            || (getAncestorForTransientWindow(window) === designatedActiveWindow)
             || (config.respectVirtualDesktops && !areOnSameVirtualDesktop(designatedActiveWindow, window))
             || (config.respectOverlap && !doWindowsOverlap(designatedActiveWindow, window))) {
             continue;
@@ -143,6 +142,15 @@ function doWindowsOverlap(windowA, windowB) {
     // If they are not separate either horizontally or vertically,
     // they must overlap.
     return true;
+}
+
+function getAncestorForTransientWindow(window) {
+    const parent = window.transientFor
+    if (!parent) {
+        return window
+    }
+
+    return getAncestorForTransientWindow(parent)
 }
 
 // --- Main Connections ---
