@@ -4,13 +4,19 @@ print("SoloWindow Script: Loading...");
 
 // A set to store the unique IDs of windows that should not be minimized.
 const pinnedWindowIds = new Set();
+const config = {
+    respectMonitors: readConfig('respectMonitors', true),
+    respectVirtualDesktops: readConfig('respectVirtualDesktops', true),
+    respectOverlap: readConfig('respectOverlap', true),
+    pinnedWindowsDontMinimize: readConfig('pinnedWindowsDontMinimize', true)
+};
 
 function soloWindow(activeWindow) {
     print(`SoloWindow Script: windowActivated triggered for '${activeWindow ? activeWindow.caption : "N/A"}'.`);
 
     if (!activeWindow
         || !activeWindow.normalWindow
-        || pinnedWindowIds.has(activeWindow.internalId)) {
+        || (config.pinnedWindowsDontMinimize && pinnedWindowIds.has(activeWindow.internalId))) {
         print(`SoloWindow Script: Activated window is null or not a normal window, or is pinned. Skipping.`);
         return;
     }
@@ -33,7 +39,9 @@ function soloWindow(activeWindow) {
     }
 
     for (const window of allWindows) {
-        const designatedActiveWindow = activeWindowsByOutput.get(window.output);
+        const designatedActiveWindow = config.respectMonitors
+            ? activeWindowsByOutput.get(window.output) // One active window per each monitor
+            : activeWindow; // Only one active window for all monitors
 
         if (!window.normalWindow
             || !window.minimizable
@@ -41,9 +49,9 @@ function soloWindow(activeWindow) {
             || window === designatedActiveWindow
             || window.minimized
             || (window.transientFor
-                && window.transientFor === activeWindowsByOutput.get(window.output))
-            || !areOnSameVirtualDesktop(designatedActiveWindow, window)
-            || !doWindowsOverlap(designatedActiveWindow, window)) {
+                && window.transientFor === designatedActiveWindow)
+            || (config.respectVirtualDesktops && !areOnSameVirtualDesktop(designatedActiveWindow, window))
+            || (config.respectOverlap && !doWindowsOverlap(designatedActiveWindow, window))) {
             continue;
         }
 

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0
+      http://www.kde.org/standards/kcfg/1.0/kcfg.xsd" >
+    <group name="">
+        <entry name="respectMonitors" type="Bool">
+            <label>Respect multiple displays (keep one window raised per monitor)</label>
+            <default>true</default>
+        </entry>
+        <entry name="respectVirtualDesktops" type="Bool">
+            <label>Respect multiple virtual desktops</label>
+            <default>true</default>
+        </entry>
+        <entry name="respectOverlap" type="Bool">
+            <label>Respect windows that don't overlap (don't minimize non-overlapping windows)</label>
+            <default>true</default>
+        </entry>
+        <entry name="pinnedWindowsDontMinimize" type="Bool">
+            <label>Pinned windows won't minimize other windows</label>
+            <default>true</default>
+        </entry>
+    </group>
+</kcfg>

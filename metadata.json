@@ -10,7 +10,8 @@
         ],
         "Id": "kwin-solo-window",
         "Version": "1.0",
-        "License": "GPLv3"
+        "License": "GPLv3",
+        "Website": "https://github.com/aario/kwin-solo-window"
     },
     "KPackageStructure": "KWin/Script",
     "X-KDE-PluginInfo-Version": "2",
@@ -18,5 +19,6 @@
         "KWin/Script"
     ],
     "X-Plasma-API": "javascript",
-    "X-Plasma-MainScript": "code/main.js"
+    "X-Plasma-MainScript": "code/main.js",
+    "X-KDE-ConfigModule": "kwin/effects/configs/kcm_kwin4_genericscripted"
 }
