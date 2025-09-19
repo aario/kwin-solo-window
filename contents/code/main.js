@@ -22,6 +22,7 @@ const manuallyMinimizedWindowIds = new Set();
 // A map to store the script's intent to change a window's minimized state.
 // Key: window.internalId, Value: boolean (true for minimize, false for restore)
 const scriptChangeIntents = new Map();
+var recentlyClosedWindowId;
 
 // Read configuration from the settings UI.
 const config = {
@@ -128,6 +129,7 @@ function shouldBeMinimized(windowA, allWindows) {
  * This prevents a change in one window from affecting the calculation for another in the same sweep.
  */
 function sweepWindows() {
+    
 	if (DEBUG) {
 	 	if (debug_sweep_function_calls >= DEBUG_MAX_SWEEP_FUNCTION_CALLS) {
 			log('DEBUG MODE - Max sweep function calls reached. Skip to prevent frozen dekstop. Reload the script to continue testing.');
@@ -137,58 +139,67 @@ function sweepWindows() {
 		debug_sweep_function_calls = debug_sweep_function_calls + 1;
 	}
 
-    log("sweepWindows() triggered.");
-    const allWindows = workspace.stackingOrder;
-    const desiredStates = new Map();
-    const ancerstorsToKeepUp = new Set();
+    /**
+    * Schedules a sweep to run asynchronously. This is the main way to trigger a re-evaluation.
+    * It uses a D-Bus call as a "setTimeout(..., 1)" hack to let KWin's state settle first.
+    */
+	callDBus("org.kde.KWin", "/KWin", "org.kde.KWin", "supportInformation", function() {
+        log("sweepWindows() triggered.");
+        const allWindows = workspace.stackingOrder.filter(window => {
+            return window.internalId != recentlyClosedWindowId
+                && !window.deleted;
+        });
+        const desiredStates = new Map();
+        const ancerstorsToKeepUp = new Set();
 
-    // --- Pass 1: Determine all states ---
-    for (const window of allWindows) {
-        windowShouldBeMinimized = shouldBeMinimized(window, allWindows);
-        desiredStates.set(window.internalId, windowShouldBeMinimized);
+        // --- Pass 1: Determine all states ---
+        for (const window of allWindows) {
+            windowShouldBeMinimized = shouldBeMinimized(window, allWindows);
+            desiredStates.set(window.internalId, windowShouldBeMinimized);
 
-        if (config.respectOverlap) {
-            continue;
+            if (config.respectOverlap) {
+                continue;
+            }
+
+            // We are in true solo-window mode
+            ancestor = getAncestorForTransientWindow(window)
+            if (ancestor == window) { //This is not a transient window
+                if (ancerstorsToKeepUp.has(ancestor.internalId)) {
+                    windowShouldBeMinimized = false;
+                    desiredStates.set(ancestor.internalId, windowShouldBeMinimized); 
+                    log(`A child transient window of '${ancestor.caption}' is decided to be up. The ancestor follows`);
+                }
+            } else { // It is a transient window with an ancestor
+                if (!windowShouldBeMinimized // Current window has been decided to show up
+                && !manuallyMinimizedWindowIds.has(ancestor.internalId) // Ancestor has not been manually minimized
+                ) { 
+                    desiredStates.set(ancestor.internalId, windowShouldBeMinimized); // Ancestor follows transient
+                    ancerstorsToKeepUp.add(ancestor.internalId);
+                    log(`Window '${window.caption}' is a transient child window. The ancestor '${ancestor.caption}' follows it`);
+                }
+            }
         }
 
-        // We are in true solo-window mode
-        ancestor = getAncestorForTransientWindow(window)
-        if (ancestor == window) { //This is not a transient window
-            if (ancerstorsToKeepUp.has(ancestor.internalId)) {
-                windowShouldBeMinimized = false;
-                desiredStates.set(ancestor.internalId, windowShouldBeMinimized); 
-                log(`A child transient window of '${ancestor.caption}' is decided to be up. The ancestor follows`);
-            }
-        } else { // It is a transient window with an ancestor
-            if (!windowShouldBeMinimized // Current window has been decided to show up
-            && !manuallyMinimizedWindowIds.has(ancestor.internalId) // Ancestor has not been manually minimized
-            ) { 
-                desiredStates.set(ancestor.internalId, windowShouldBeMinimized); // Ancestor follows transient
-                ancerstorsToKeepUp.add(ancestor.internalId);
-                log(`Window '${window.caption}' is a transient child window. The ancestor '${ancestor.caption}' follows it`);
+        // --- Pass 2: Apply all states ---
+        for (const window of allWindows) {
+            const shouldBeMinimized = desiredStates.get(window.internalId);
+            if (shouldBeMinimized === undefined) continue;
+
+            if (shouldBeMinimized && !window.minimized) {
+                log(`Record our intent to MINIMIZE '${window.caption}'`);
+                scriptChangeIntents.set(window.internalId, true);
+                window.minimized = true;
+            } else if (!shouldBeMinimized
+                && window.minimized
+                && !manuallyMinimizedWindowIds.has(window.internalId)) {
+                log(`Record our intent to RESTORE '${window.caption}'`);
+                scriptChangeIntents.set(window.internalId, false);
+                window.minimized = false;
             }
         }
-    }
 
-    // --- Pass 2: Apply all states ---
-    for (const window of allWindows) {
-        const shouldBeMinimized = desiredStates.get(window.internalId);
-        if (shouldBeMinimized === undefined) continue;
-
-        if (shouldBeMinimized && !window.minimized) {
-            log(`Record our intent to MINIMIZE '${window.caption}'`);
-            scriptChangeIntents.set(window.internalId, true);
-            window.minimized = true;
-        } else if (!shouldBeMinimized
-            && window.minimized
-            && !manuallyMinimizedWindowIds.has(window.internalId)) {
-            log(`Record our intent to RESTORE '${window.caption}'`);
-            scriptChangeIntents.set(window.internalId, false);
-            window.minimized = false;
-        }
-    }
-
-    log("sweepWindows() finished.");
+        log("sweepWindows() finished.");
+    });
 }
 
 
@@ -251,8 +262,10 @@ function onWindowRemoved(window) {
     // Clean up the pinned ID for the closed window.
     pinnedWindowIds.delete(window.internalId);
     manuallyMinimizedWindowIds.delete(window.internalId)
+    scriptChangeIntents.delete(window.internalId)
     log(`Cleaned up pinned ID for closed window '${window.caption}'.`);
 
+    recentlyClosedWindowId = window.internalId;
     sweepWindows();
 }
 
@@ -317,18 +330,17 @@ function onWindowAdded(window) {
         log(`desktopsChanged on '${window.caption}'`);
         sweepWindows()
     });
+
+    sweepWindows()
 }
 
 // Connect signals that affect the entire workspace.
 workspace.windowAdded.connect(onWindowAdded);
 workspace.windowRemoved.connect(onWindowRemoved);
-// workspace.windowActivated.connect((window) => {
-//     log(`windowActivated triggered.`);
-//     sweepWindows()
-// });
+
 workspace.currentDesktopChanged.connect((window) => {
-    log(`windowActivated on '${window.caption}'`);
-    currentDesktopChanged()
+    log(`currentDesktopChanged on '${window.caption}'`);
+    sweepWindows()
 });
 
 // Connect signals for all windows that already exist when the script loads.
